@@ -13,5 +13,5 @@ export DEBUGINFOD_URLS="http://foo.mynet.local/debuginfo https://debuginfod.elfu
 export DEBUGINFOD_IMA_CERT_PATH="/etc/certs" 
 ##
 
-./install.sh
+./install
 
