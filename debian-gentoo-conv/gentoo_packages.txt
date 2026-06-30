@@ -118,7 +118,9 @@ dev-util/dialog             # dialog
 # Verify availability:  emerge -s <name>   /   eix <name>
 # ---------------------------------------------------------------------------
 app-admin/lsyncd            # lsyncd        [OVERLAY: ::guru]
-app-admin/multitail         # multitail     [OVERLAY: ::guru]  (or app-text/multitail in some trees)
-app-admin/crudini           # crudini       [OVERLAY: ::guru]  (or install via pip: pip3 install crudini)
+# crudini is NOT packaged for Gentoo (no app-admin/crudini); install it via pip
+# from upstream instead - see the before/after hooks in gentoo.conf.
+#     pip install git+https://github.com/pixelb/crudini.git#egg=crudini
+app-text/multitail          # multitail     [OVERLAY: ::guru]  (or app-text/multitail in some trees)
 sys-process/nmon            # nmon          [OVERLAY: ::guru]
 dev-perl/App-perlbrew       # perlbrew      [OVERLAY/CPAN: may need ::guru or `cpanm App::perlbrew`]

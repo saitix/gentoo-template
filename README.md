@@ -35,7 +35,8 @@ The full package set lives in the `ADDITIONAL_PACKAGES` array in `gentoo.conf`.
 | **Languages / dev** | perl, App-cpanminus, python, pip, nodejs, git |
 | **Monitoring / admin** | htop, monit, virt-what, qemu-guest-agent |
 | **Terminal / misc tools** | screen, tmux, mc, jq, expect, dialog, cpuid2cpuflags |
-| **Overlay (::guru)** | lsyncd, multitail, crudini, nmon, App-perlbrew — _provided by the GURU overlay, which is enabled automatically (see below)_ |
+| **Overlay (::guru)** | lsyncd, multitail, nmon, App-perlbrew — _provided by the GURU overlay, which is enabled automatically (see below)_ |
+| **Pip (upstream)** | crudini — _not packaged for Gentoo; installed from [github.com/pixelb/crudini](https://github.com/pixelb/crudini) via pip in the `after_install()` hook_ |
 | **Portage** | Git sync against `anongit.gentoo.org`, mirrors via `leaseweb`, `ACCEPT_LICENSE="*"`, `-march=native -O2 -pipe`, `-j8 -l9` |
 
 > **GURU overlay:** Some packages above are not in the main `::gentoo` tree. The `after_configure_portage()` hook in `gentoo.conf` automatically installs `app-eselect/eselect-repository`, enables the GURU overlay (`eselect repository enable guru`), and syncs it (`emaint sync -r guru`) — this happens after the main Portage tree is synced but before `ADDITIONAL_PACKAGES` are emerged, so those packages resolve correctly.
