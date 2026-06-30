@@ -110,7 +110,7 @@ app-misc/screen             # screen
 app-misc/tmux               # tmux
 app-misc/mc                 # mc
 app-misc/jq                 # jq
-dev-tcl/expect              # expect
+dev-tcltk/expect            # expect
 dev-util/dialog             # dialog
 
 # ---------------------------------------------------------------------------
