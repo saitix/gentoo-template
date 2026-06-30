@@ -27,9 +27,9 @@ app-shells/bash             # bash                                              
 app-arch/gzip               # zgrep                                                   [BASE]
 sys-apps/util-linux         # dmesg mount umount script blkid lsblk                   [BASE]
 sys-apps/kmod               # modprobe                                                [BASE]
-sys-apps/procps             # pgrep pidof ps skill sysctl uptime                      [BASE]
 sys-apps/shadow             # chpasswd passwd useradd userdel usermod                 [BASE]
-sys-apps/hostname           # hostname                                               [BASE]
+sys-apps/hostname           # hostname                                                [BASE]
+sys-process/procps          # pgrep pidof ps skill sysctl uptime                      [BASE]
 
 # ---------------------------------------------------------------------------
 # Init / system (systemd target)
