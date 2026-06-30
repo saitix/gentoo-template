@@ -84,7 +84,7 @@ net-analyzer/fail2ban       # fail2ban-client
 # Databases
 # ---------------------------------------------------------------------------
 dev-db/sqlite               # sqlite3
-dev-db/mariadb              # mysql   (MariaDB is Gentoo's default MySQL implementation)
+#dev-db/mariadb              # mysql   (MariaDB is Gentoo's default MySQL implementation. Trying not to use any db at all)
 
 # ---------------------------------------------------------------------------
 # Languages / development
