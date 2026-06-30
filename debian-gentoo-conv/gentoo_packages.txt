@@ -16,7 +16,7 @@
 # ---------------------------------------------------------------------------
 # Core userland (usually already present on a stage3)
 # ---------------------------------------------------------------------------
-sys-apps/coreutils          # basename cat chmod chown comm cp cut date dirname head id md5sum mkdir mktemp mv readlink realpath rm seq sleep sort stat sync tac tail tee timeout touch tr truncate uname uniq wc whoami   [BASE]
+sys-apps/coreutils          # basename cat chmod chown comm cp cut date dirname head hostname id md5sum mkdir mktemp mv readlink realpath rm seq sleep sort stat sync tac tail tee timeout touch tr truncate uname uniq wc whoami   [BASE]
 sys-apps/findutils          # find xargs                                              [BASE]
 sys-apps/grep               # grep                                                    [BASE]
 sys-apps/gawk               # awk gawk                                                [BASE]
@@ -28,7 +28,6 @@ app-arch/gzip               # zgrep                                             
 sys-apps/util-linux         # dmesg mount umount script blkid lsblk                   [BASE]
 sys-apps/kmod               # modprobe                                                [BASE]
 sys-apps/shadow             # chpasswd passwd useradd userdel usermod                 [BASE]
-sys-apps/hostname           # hostname                                                [BASE]
 sys-process/procps          # pgrep pidof ps skill sysctl uptime                      [BASE]
 
 # ---------------------------------------------------------------------------
