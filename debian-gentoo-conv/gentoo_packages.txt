@@ -1,0 +1,125 @@
+# Gentoo packages to emerge on a fresh systemd install so that every
+# (non-Debian-only) command used by the stx scripts is available.
+#
+# Target profile: systemd (default/linux/amd64/.../systemd)
+# Debian-only commands are intentionally excluded - see debian_only_commands.txt
+#
+# Usage (dry-run first to verify resolution):
+#   emerge -pv $(grep -vE '^#|^$' /tmp/gentoo_packages.txt | awk '{print $1}')
+#   emerge -av  $(grep -vE '^#|^$' /tmp/gentoo_packages.txt | awk '{print $1}')
+#
+# Packages marked [BASE] are part of the @system set on a stage3 and are
+# normally already installed; they are listed for completeness.
+# Packages marked [OVERLAY] are typically not in ::gentoo and need an
+# overlay such as ::guru (eselect repository enable guru && emaint sync -r guru).
+
+# ---------------------------------------------------------------------------
+# Core userland (usually already present on a stage3)
+# ---------------------------------------------------------------------------
+sys-apps/coreutils          # basename cat chmod chown comm cp cut date dirname head id md5sum mkdir mktemp mv readlink realpath rm seq sleep sort stat sync tac tail tee timeout touch tr truncate uname uniq wc whoami   [BASE]
+sys-apps/findutils          # find xargs                                              [BASE]
+sys-apps/grep               # grep                                                    [BASE]
+sys-apps/gawk               # awk gawk                                                [BASE]
+sys-apps/sed                # sed                                                     [BASE]
+sys-apps/diffutils          # diff                                                    [BASE]
+sys-apps/which              # which                                                   [BASE]
+app-shells/bash             # bash                                                    [BASE]
+app-arch/gzip               # zgrep                                                   [BASE]
+sys-apps/util-linux         # dmesg mount umount script blkid lsblk                   [BASE]
+sys-apps/kmod               # modprobe                                                [BASE]
+sys-apps/procps             # pgrep pidof ps skill sysctl uptime                      [BASE]
+sys-apps/shadow             # chpasswd passwd useradd userdel usermod                 [BASE]
+sys-apps/hostname           # hostname                                               [BASE]
+
+# ---------------------------------------------------------------------------
+# Init / system (systemd target)
+# ---------------------------------------------------------------------------
+sys-apps/systemd            # systemctl journalctl systemd-tmpfiles hostnamectl udevadm reboot   [BASE]
+sys-apps/lsb-release        # lsb_release
+sys-apps/mlocate            # updatedb
+
+# ---------------------------------------------------------------------------
+# Filesystem / storage
+# ---------------------------------------------------------------------------
+sys-fs/btrfs-progs          # btrfs
+sys-block/parted            # parted partprobe
+sys-process/lsof            # lsof
+
+# ---------------------------------------------------------------------------
+# Networking
+# ---------------------------------------------------------------------------
+sys-apps/iproute2           # ip
+sys-apps/net-tools          # ifconfig netstat
+sys-apps/ethtool            # ethtool
+net-firewall/iptables       # iptables
+net-misc/openssh            # ssh scp ssh-keygen ssh-copy-id
+net-misc/curl               # curl
+net-misc/wget               # wget
+net-misc/rsync              # rsync
+net-dns/bind-tools          # dig host
+net-misc/iperf              # iperf
+net-analyzer/tcpdump        # tcpdump
+net-misc/whois              # whois
+net-misc/mosh               # mosh
+
+# ---------------------------------------------------------------------------
+# Security / crypto / auth
+# ---------------------------------------------------------------------------
+app-admin/sudo              # sudo
+dev-libs/openssl            # openssl
+dev-libs/cyrus-sasl         # saslauthd saslpasswd2 testsaslauthd   (USE="authdaemond")
+dev-libs/libpwquality       # pwscore
+app-crypt/certbot           # certbot
+
+# ---------------------------------------------------------------------------
+# Mail system
+# ---------------------------------------------------------------------------
+mail-mta/postfix            # postfix postconf postmulti postqueue postsuper mailq   (USE="sasl ssl pcre")
+mail-filter/opendkim        # opendkim opendkim-genkey
+mail-filter/spamassassin    # spamassassin sa-compile sa-update
+mail-filter/razor           # razor-admin
+mail-filter/pyzor           # pyzor
+net-analyzer/fail2ban       # fail2ban-client
+
+# ---------------------------------------------------------------------------
+# Databases
+# ---------------------------------------------------------------------------
+dev-db/sqlite               # sqlite3
+dev-db/mariadb              # mysql   (MariaDB is Gentoo's default MySQL implementation)
+
+# ---------------------------------------------------------------------------
+# Languages / development
+# ---------------------------------------------------------------------------
+dev-lang/perl               # perl
+dev-perl/App-cpanminus      # cpanm
+dev-lang/python             # python3   [BASE]
+dev-python/pip              # pip3
+net-libs/nodejs             # npm   (emerge with USE="npm")
+dev-vcs/git                 # git
+
+# ---------------------------------------------------------------------------
+# Monitoring / admin
+# ---------------------------------------------------------------------------
+sys-process/htop            # htop
+app-admin/monit             # monit
+app-emulation/virt-what     # virt-what
+
+# ---------------------------------------------------------------------------
+# Terminal multiplexers / file managers / misc tools
+# ---------------------------------------------------------------------------
+app-misc/screen             # screen
+app-misc/tmux               # tmux
+app-misc/mc                 # mc
+app-misc/jq                 # jq
+dev-tcl/expect              # expect
+dev-util/dialog             # dialog
+
+# ---------------------------------------------------------------------------
+# Packages that usually require an overlay (e.g. ::guru) on Gentoo
+# Verify availability:  emerge -s <name>   /   eix <name>
+# ---------------------------------------------------------------------------
+app-admin/lsyncd            # lsyncd        [OVERLAY: ::guru]
+app-admin/multitail         # multitail     [OVERLAY: ::guru]  (or app-text/multitail in some trees)
+app-admin/crudini           # crudini       [OVERLAY: ::guru]  (or install via pip: pip3 install crudini)
+sys-process/nmon            # nmon          [OVERLAY: ::guru]
+dev-perl/App-perlbrew       # perlbrew      [OVERLAY/CPAN: may need ::guru or `cpanm App::perlbrew`]

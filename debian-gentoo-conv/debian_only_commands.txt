@@ -1,0 +1,26 @@
+# Debian/Ubuntu-only commands found in the stx scripts.
+# These have NO native equivalent on a fresh systemd Gentoo install and
+# cannot be provided by emerge. The scripts that use them are written to
+# run on Debian/Ubuntu hosts. Gentoo replacements are noted where relevant.
+
+# --- APT package-management ecosystem (Debian-only) ---
+apt-add-repository          # -> Gentoo: edit /etc/portage, eselect repository / layman
+apt-cache                   # -> Gentoo: emerge -s / equery
+apt-file                    # -> Gentoo: equery belongs / e-file (app-portage/pfl)
+apt-get                     # -> Gentoo: emerge
+aptitude                    # -> Gentoo: emerge
+
+# --- dpkg low-level package tool (Debian-only) ---
+dpkg                        # -> Gentoo: equery / qlist (app-portage/gentoolkit)
+
+# --- debconf configuration database (Debian-only) ---
+debconf-communicate         # no Gentoo equivalent (package pre-seed only)
+debconf-get-selections      # no Gentoo equivalent
+debconf-set-selections      # no Gentoo equivalent
+
+# --- Distro/init wrappers not native to systemd Gentoo ---
+service                     # SysV/Debian wrapper -> Gentoo systemd: systemctl
+update-grub                 # Debian wrapper -> Gentoo: grub-mkconfig -o /boot/grub/grub.cfg
+
+# --- Ubuntu Snap packaging (not in the Gentoo tree) ---
+snap                        # Canonical snapd; not officially packaged for Gentoo
