@@ -16,6 +16,24 @@ cd /tmp ; git clone https://github.com/saitix/gentoo-template.git ; cd gentoo-te
 
 `run.sh` clones `oddlama/gentoo-install` into `/tmp`, overlays the local `gentoo.conf`, applies any required workarounds, and launches the upstream installer.
 
+### Build binary packages (`-bb`)
+
+Pass `-bb` to turn the installed system into a binary-package builder:
+
+```bash
+./run.sh -bb
+```
+
+After the install succeeds, `run.sh` edits the chrooted `/etc/portage/make.conf` to enable `FEATURES="buildpkg"` (preserving any existing features) and to set `BINPKG_COMPRESS="lz4"`, per the [Binary package guide](https://wiki.gentoo.org/wiki/Binary_package_guide#Setting_up_a_binary_package_host). Any other arguments are forwarded to the upstream `./install`.
+
+---
+
+## Continue/Reinstall the packages after rebooting in the new installed system
+
+```bash
+cd /tmp ; git clone https://github.com/saitix/gentoo-template.git ; cd gentoo-template ; source gentoo.conf && emerge --verbose --noreplace --jobs=4 --load-average=9 "${ADDITIONAL_PACKAGES[@]}"
+```
+
 ---
 
 ## What gets installed
@@ -49,6 +67,8 @@ The full package set lives in the `ADDITIONAL_PACKAGES` array in `gentoo.conf`.
 gentoo-template/
 ├── gentoo.conf              # Main installer configuration (edit before running)
 ├── run.sh                   # Entry point — clones upstream and launches install
+│                            #   Optional flag: -bb enables binary package
+│                            #   building (FEATURES="buildpkg", BINPKG_COMPRESS="lz4")
 ├── reformat_partitions.sh   # Helper: wipe & reformat all partitions on all disks
 │                            #   (preserves FS type, FS label, GPT partition label)
 │                            #   Options: --dry-run, --force
@@ -97,6 +117,23 @@ ROOT_SSH_AUTHORIZED_KEYS='ssh-ed25519 AAAA... user@host'
 ---
 
 ## Helper scripts
+
+### `run.sh`
+
+Entry point that clones `oddlama/gentoo-install`, overlays `gentoo.conf`, and launches the upstream installer.
+
+```bash
+# Plain install
+./run.sh
+
+# Install and configure the new system as a binary-package builder
+./run.sh -bb
+
+# Any other args are forwarded to the upstream ./install
+./run.sh --chroot /tmp/gentoo-install/root
+```
+
+When `-bb` is given, the chrooted `/etc/portage/make.conf` is updated after install to enable `FEATURES="buildpkg"` (existing features are preserved) and to set `BINPKG_COMPRESS="lz4"`.
 
 ### `reformat_partitions.sh`
 

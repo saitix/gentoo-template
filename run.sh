@@ -1,8 +1,94 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-pwd=$(pwd)
+##############################################################################
+# --- Post-install: Function to enable binary package building in the installed system.
+# oddlama/gentoo-install mounts the new system under $ROOT_MOUNTPOINT, which is
+# /tmp/gentoo-install/root (see upstream scripts/config.sh).
+enable_buildpkg() {
+	local makeconf="$1"
 
+	if [[ ! -f "$makeconf" ]]; then
+		echo "[-bb] make.conf not found at '$makeconf'; nothing to do" >&2
+		return 1
+	fi
+
+	# Keep a timestamped backup before editing
+	cp -a "$makeconf" "${makeconf}.bak-bb-$(date +%Y%m%d%H%M%S)"
+
+	# FEATURES: make sure the 'buildpkg' token is enabled, preserving the rest.
+	if grep -qE '^FEATURES=' "$makeconf"; then
+		# Extract the value of the first FEATURES= line (strip FEATURES= and any
+		# surrounding double/single quotes).
+		local cur token found='false' newval
+		cur=$(grep -E '^FEATURES=' "$makeconf" | head -n1 \
+			| sed -E 's/^FEATURES=//; s/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/')
+
+		# Look for the buildpkg token (so -buildpkg / getbinpkg don't false-match)
+		read -ra _tokens <<<"$cur"
+		for token in "${_tokens[@]}"; do
+			if [[ "$token" == "buildpkg" ]]; then
+				found='true'; break
+			fi
+		done
+
+		if [[ "$found" == 'true' ]]; then
+			echo "[-bb] FEATURES already contains buildpkg"
+		else
+			newval="${cur:+$cur }buildpkg"
+			sed -i "s|^FEATURES=.*|FEATURES=\"$newval\"|" "$makeconf"
+			echo "[-bb] FEATURES updated -> FEATURES=\"$newval\""
+		fi
+	else
+		echo 'FEATURES="buildpkg"' >>"$makeconf"
+		echo '[-bb] FEATURES not present; added FEATURES="buildpkg"'
+	fi
+
+	# BINPKG_COMPRESS: force lz4 (fast, low-CPU compression for the binpkgs).
+	if grep -qE '^BINPKG_COMPRESS=' "$makeconf"; then
+		if grep -qE '^BINPKG_COMPRESS="lz4"' "$makeconf"; then
+			echo "[-bb] BINPKG_COMPRESS already lz4"
+		else
+			sed -i 's|^BINPKG_COMPRESS=.*|BINPKG_COMPRESS="lz4"|' "$makeconf"
+			echo '[-bb] BINPKG_COMPRESS set to lz4'
+		fi
+	else
+		echo 'BINPKG_COMPRESS="lz4"' >>"$makeconf"
+		echo '[-bb] BINPKG_COMPRESS not present; added BINPKG_COMPRESS="lz4"'
+	fi
+}
+##############################################################################
+
+# --- Optional flags ---------------------------------------------------------
+# -bb  Enable binary package building on the installed system.
+#      After ./install finishes, the chrooted /etc/portage/make.conf is edited
+#      to enable FEATURES="buildpkg" (preserving existing features) and to force
+#      BINPKG_COMPRESS="lz4". See:
+#      https://wiki.gentoo.org/wiki/Binary_package_guide#Setting_up_a_binary_package_host
+BUILD_BINPKG='false'
+INSTALL_ARGS=()
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		-bb)
+			BUILD_BINPKG='true'
+			shift
+			;;
+		--)
+			# Everything after -- is forwarded verbatim to ./install
+			shift
+			while [[ $# -gt 0 ]]; do
+				INSTALL_ARGS+=("$1"); shift
+			done
+			;;
+		*)
+			# Unknown options/args are forwarded to the upstream installer
+			INSTALL_ARGS+=("$1"); shift
+			;;
+	esac
+done
+
+#Prepare and clone the gentoo-install repo, then copy our gentoo.conf into it. This is needed because the upstream installer expects gentoo.conf to be in the same directory as install.sh.
+pwd=$(pwd)
 cd /tmp
 git clone https://github.com/oddlama/gentoo-install
 cp $pwd/gentoo.conf /tmp/gentoo-install/
@@ -13,5 +99,16 @@ export DEBUGINFOD_URLS="http://foo.mynet.local/debuginfo https://debuginfod.elfu
 export DEBUGINFOD_IMA_CERT_PATH="/etc/certs" 
 ##
 
-./install
+# Run the real installer (forward any extra arguments)
+if [[ ${#INSTALL_ARGS[@]} -gt 0 ]]; then
+	./install "${INSTALL_ARGS[@]}"
+else
+	./install
+fi
+
+# --- Post-install: enable binary package building when -bb was given --------
+if [[ "$BUILD_BINPKG" == 'true' ]]; then
+	echo '[-bb] Enabling binary package building in the installed system...'
+	enable_buildpkg "/tmp/gentoo-install/root/etc/portage/make.conf"
+fi
 
