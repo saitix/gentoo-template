@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- Paths ------------------------------------------------------------------
+# These mirror oddlama/gentoo-install's scripts/config.sh (TMP_DIR and
+# ROOT_MOUNTPOINT). The values MUST stay in sync with upstream — the installer
+# always works under this dir regardless of where run.sh is launched from.
+INSTALLER_DIR="/tmp/gentoo-install"   # upstream TMP_DIR: clone + working area
+CHROOT_ROOT="$INSTALLER_DIR/root"     # upstream ROOT_MOUNTPOINT: the new system
+
 ##############################################################################
 # --- Post-install: Function to enable binary package building in the installed system.
 # oddlama/gentoo-install mounts the new system under $ROOT_MOUNTPOINT, which is
@@ -58,6 +65,25 @@ enable_buildpkg() {
 	fi
 }
 ##############################################################################
+# Function to  copy the working tree (not a fresh 'git clone') so that local gentoo.conf
+# edits and the local git state are preserved — a future 'git push' from
+# /opt/gentoo-template will still work. -a preserves perms/symlinks/.git.
+copy_repo_into_chroot() {
+	local target="$CHROOT_ROOT/opt/gentoo-template"
+
+	if [[ ! -d "$CHROOT_ROOT" ]]; then
+		echo "[stage3] chroot root '$CHROOT_ROOT' not found; cannot stage repo" >&2
+		return 1
+	fi
+
+	mkdir -p "$target"
+	# Copy contents (trailing /.) so we don't nest a gentoo-template/ subdir.
+	cp -a "$pwd/." "$target/"
+
+	echo "[stage3] repo staged at /opt/gentoo-template in the chroot"
+	echo "[stage3] After reboot run:  cd /opt/gentoo-template && ./run_stage3.sh"
+}
+##############################################################################
 
 # --- Optional flags ---------------------------------------------------------
 # -bb  Enable binary package building on the installed system.
@@ -89,10 +115,37 @@ done
 
 #Prepare and clone the gentoo-install repo, then copy our gentoo.conf into it. This is needed because the upstream installer expects gentoo.conf to be in the same directory as install.sh.
 pwd=$(pwd)
+
+# Sanity: the local gentoo.conf must exist before we try to copy it in.
+if [[ ! -f "$pwd/gentoo.conf" ]]; then
+	echo "ERROR: gentoo.conf not found in '$pwd' — cannot continue." >&2
+	exit 1
+fi
+
 cd /tmp
-git clone https://github.com/oddlama/gentoo-install
-cp $pwd/gentoo.conf /tmp/gentoo-install/
-cd /tmp/gentoo-install
+
+# Guard against a leftover directory from a previous/failed run: git clone
+# refuses to clone into a path that already exists, which would abort here.
+if [[ -e "$INSTALLER_DIR" ]]; then
+	echo "ERROR: $INSTALLER_DIR already exists (leftover from a previous run?)." >&2
+	echo "       Remove it (rm -rf $INSTALLER_DIR) and re-run." >&2
+	exit 1
+fi
+
+# Clone the upstream installer and check it actually succeeded.
+if ! git clone https://github.com/oddlama/gentoo-install; then
+	echo "ERROR: git clone of oddlama/gentoo-install failed." >&2
+	exit 1
+fi
+
+# Verify the clone produced the expected directory before we use it.
+if [[ ! -d "$INSTALLER_DIR" ]]; then
+	echo "ERROR: $INSTALLER_DIR does not exist after git clone." >&2
+	exit 1
+fi
+
+cp "$pwd/gentoo.conf" "$INSTALLER_DIR"/
+cd "$INSTALLER_DIR"
 
 #Fixup: issue: https://github.com/oddlama/gentoo-install/issues/153
 export DEBUGINFOD_URLS="http://foo.mynet.local/debuginfo https://debuginfod.elfutils.org/" 
@@ -109,7 +162,7 @@ fi
 # --- Post-install: enable binary package building when -bb was given --------
 if [[ "$BUILD_BINPKG" == 'true' ]]; then
 	echo '[-bb] Enabling binary package building in the installed system...'
-	enable_buildpkg "/tmp/gentoo-install/root/etc/portage/make.conf"
+	enable_buildpkg "$CHROOT_ROOT/etc/portage/make.conf"
 fi
 
 # --- Post-install: stage this repo into the installed system ----------------
@@ -118,25 +171,5 @@ fi
 # second-stage installer can then be run with:
 #     cd /opt/gentoo-template && ./run_stage3.sh
 #
-# We copy the working tree (not a fresh 'git clone') so that local gentoo.conf
-# edits and the local git state are preserved — a future 'git push' from
-# /opt/gentoo-template will still work. -a preserves perms/symlinks/.git.
-copy_repo_into_chroot() {
-	local chroot_root="/tmp/gentoo-install/root"
-	local target="$chroot_root/opt/gentoo-template"
-
-	if [[ ! -d "$chroot_root" ]]; then
-		echo "[stage3] chroot root '$chroot_root' not found; cannot stage repo" >&2
-		return 1
-	fi
-
-	mkdir -p "$target"
-	# Copy contents (trailing /.) so we don't nest a gentoo-template/ subdir.
-	cp -a "$pwd/." "$target/"
-
-	echo "[stage3] repo staged at /opt/gentoo-template in the chroot"
-	echo "[stage3] After reboot run:  cd /opt/gentoo-template && ./run_stage3.sh"
-}
-
 copy_repo_into_chroot
 
