@@ -144,6 +144,7 @@ if [[ ! -d "$INSTALLER_DIR" ]]; then
 	exit 1
 fi
 
+#Run the upstream installer (install.sh) from the cloned repo
 cp "$pwd/gentoo.conf" "$INSTALLER_DIR"/
 cd "$INSTALLER_DIR"
 
