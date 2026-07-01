@@ -68,3 +68,61 @@ if [[ ${#EMERGE_EXTRA_ARGS[@]} -gt 0 ]]; then
 else
 	emerge "${EMERGE_OPTS[@]}" "${ADDITIONAL_PACKAGES_stage3[@]}"
 fi
+
+
+# --- System upgrade ---------------------------------------------------------
+# Bring the whole system up to date. Prefer gentoo-update; if it isn't
+# installed, fall back to a plain emerge @world. Every step is wrapped so a
+# failure yields a clear message and aborts the script (set -e + explicit exit).
+#
+# When -bb was given, binary packages are built: gentoo-update/emerge get
+# --buildpkg, and afterwards quickpkg re-archives every currently-installed
+# package so the binpkgs can be reused on other machines.
+if command -v gentoo-update >/dev/null 2>&1; then
+	if [[ "$BUILD_BINPKG" == 'true' ]]; then
+		echo "run_stage3: upgrading @world via gentoo-update (--buildpkg)"
+		if ! gentoo-update update -m full --clean --args='--buildpkg'; then
+			echo "ERROR: gentoo-update failed." >&2
+			exit 1
+		fi
+	else
+		echo "run_stage3: upgrading @world via gentoo-update"
+		if ! gentoo-update update -m full --clean; then
+			echo "ERROR: gentoo-update failed." >&2
+			exit 1
+		fi
+	fi
+else
+	# gentoo-update not available — fall back to a plain emerge @world update.
+	if [[ "$BUILD_BINPKG" == 'true' ]]; then
+		echo "run_stage3: gentoo-update not found; emerging @world (--buildpkg)"
+		if ! emerge --ask --verbose --update --deep --newuse --buildpkg @world; then
+			echo "ERROR: emerge @world update failed." >&2
+			exit 1
+		fi
+	else
+		echo "run_stage3: gentoo-update not found; emerging @world"
+		if ! emerge --ask --verbose --update --deep --newuse @world; then
+			echo "ERROR: emerge @world update failed." >&2
+			exit 1
+		fi
+	fi
+fi
+
+# Build binary packages of all currently-installed packages (buildpkg path).
+# quickpkg ships in app-portage/gentoolkit — warn (don't fail) if it's missing.
+if [[ "$BUILD_BINPKG" == 'true' ]]; then
+	if command -v quickpkg >/dev/null 2>&1; then
+		echo "run_stage3: creating binary packages of all installed packages"
+		if ! quickpkg "*/*"; then
+			echo "ERROR: quickpkg failed." >&2
+			exit 1
+		fi
+	else
+		echo "WARNING: quickpkg not found (install app-portage/gentoolkit); skipping quickpkg." >&2
+	fi
+fi
+
+
+#Cleaning up after an update. After the update, Portage recommends running
+emerge --depclean
