@@ -25,14 +25,43 @@ Pass `-bb` to turn the installed system into a binary-package builder:
 ```
 
 After the install succeeds, `run.sh` edits the chrooted `/etc/portage/make.conf` to enable `FEATURES="buildpkg"` (preserving any existing features) and to set `BINPKG_COMPRESS="lz4"`, per the [Binary package guide](https://wiki.gentoo.org/wiki/Binary_package_guide#Setting_up_a_binary_package_host). Any other arguments are forwarded to the upstream `./install`.
+The binary packages are stored in `/var/cache/binpkgs` on the installed system, and can be used to speed up future installs on other machines.
 
 ---
 
-## Continue/Reinstall the packages after rebooting in the new installed system
+## Two-stage install
+
+This installer is split into two stages:
+
+1. **Stage 1 — `run.sh`** (run from the minimal CD): lays down a minimal base system (the packages in `ADDITIONAL_PACKAGES`) and, at the end, copies this repo into the new system at `/opt/gentoo-template`.
+2. **Stage 2 — `run_stage3.sh`** (run after the first reboot, inside the installed system): installs the remaining packages from `ADDITIONAL_PACKAGES_stage3` in `gentoo.conf`.
+
+### Stage 2: install the remaining packages
+
+After the first stage finishes and you have rebooted into the new system, the repo is already staged at `/opt/gentoo-template`. Run:
 
 ```bash
-cd /tmp ; git clone https://github.com/saitix/gentoo-template.git ; cd gentoo-template ; source gentoo.conf && emerge --verbose --noreplace --jobs=4 --load-average=9 "${ADDITIONAL_PACKAGES[@]}"
+cd /opt/gentoo-template && ./run_stage3.sh
 ```
+
+`run_stage3.sh` sources `gentoo.conf` (the single source of truth for package lists) and runs:
+
+```bash
+emerge --verbose --noreplace --jobs=4 --load-average=9 "${ADDITIONAL_PACKAGES_stage3[@]}"
+```
+
+Pass `-bb` to also build binary packages (`--buildpkg`) of everything it compiles:
+
+```bash
+./run_stage3.sh -bb
+```
+
+Any other arguments are forwarded to `emerge` (e.g. `./run_stage3.sh --pretend -bb`).
+
+> If `/opt/gentoo-template` is missing (e.g. the staging step was skipped), re-clone and run manually:
+> ```bash
+> cd /tmp ; git clone https://github.com/saitix/gentoo-template.git ; cd gentoo-template ; ./run_stage3.sh
+> ```
 
 ---
 
@@ -40,7 +69,7 @@ cd /tmp ; git clone https://github.com/saitix/gentoo-template.git ; cd gentoo-te
 
 The template targets an **amd64 systemd** server profile and installs:
 
-The full package set lives in the `ADDITIONAL_PACKAGES` array in `gentoo.conf`.
+The minimal stage-1 set lives in `ADDITIONAL_PACKAGES`; the remainder (installed by `run_stage3.sh` after the first reboot) lives in `ADDITIONAL_PACKAGES_stage3`. Both arrays are in `gentoo.conf`.
 
 | Category | Packages |
 |---|---|
@@ -69,6 +98,9 @@ gentoo-template/
 ├── run.sh                   # Entry point — clones upstream and launches install
 │                            #   Optional flag: -bb enables binary package
 │                            #   building (FEATURES="buildpkg", BINPKG_COMPRESS="lz4")
+│                            #   Stages this repo into the chroot at /opt/gentoo-template
+├── run_stage3.sh            # Stage 2 — run after first reboot from /opt/gentoo-template
+│                            #   Emerges ADDITIONAL_PACKAGES_stage3; optional -bb adds --buildpkg
 ├── reformat_partitions.sh   # Helper: wipe & reformat all partitions on all disks
 │                            #   (preserves FS type, FS label, GPT partition label)
 │                            #   Options: --dry-run, --force
@@ -134,6 +166,22 @@ Entry point that clones `oddlama/gentoo-install`, overlays `gentoo.conf`, and la
 ```
 
 When `-bb` is given, the chrooted `/etc/portage/make.conf` is updated after install to enable `FEATURES="buildpkg"` (existing features are preserved) and to set `BINPKG_COMPRESS="lz4"`.
+
+At the end, regardless of flags, `run.sh` copies this repo verbatim into the new system at `/opt/gentoo-template` so the second stage can be run after reboot.
+
+### `run_stage3.sh`
+
+Second-stage installer, run **after the first reboot**, from the staged copy at `/opt/gentoo-template`. It sources `gentoo.conf` and emerges every package in `ADDITIONAL_PACKAGES_stage3`.
+
+```bash
+# From inside the freshly rebooted system
+cd /opt/gentoo-template && ./run_stage3.sh
+
+# Also build binary packages while emerging
+./run_stage3.sh -bb
+```
+
+Requires: a working Portage tree and the GURU overlay already configured (both are set up during stage 1 by the `before_configure_portage()` / `after_configure_portage()` hooks in `gentoo.conf`).
 
 ### `reformat_partitions.sh`
 

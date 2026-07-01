@@ -112,3 +112,31 @@ if [[ "$BUILD_BINPKG" == 'true' ]]; then
 	enable_buildpkg "/tmp/gentoo-install/root/etc/portage/make.conf"
 fi
 
+# --- Post-install: stage this repo into the installed system ----------------
+# Copy the working gentoo-template checkout (the dir run.sh was launched from)
+# verbatim into the chroot at /opt/gentoo-template. After the first reboot the
+# second-stage installer can then be run with:
+#     cd /opt/gentoo-template && ./run_stage3.sh
+#
+# We copy the working tree (not a fresh 'git clone') so that local gentoo.conf
+# edits and the local git state are preserved — a future 'git push' from
+# /opt/gentoo-template will still work. -a preserves perms/symlinks/.git.
+copy_repo_into_chroot() {
+	local chroot_root="/tmp/gentoo-install/root"
+	local target="$chroot_root/opt/gentoo-template"
+
+	if [[ ! -d "$chroot_root" ]]; then
+		echo "[stage3] chroot root '$chroot_root' not found; cannot stage repo" >&2
+		return 1
+	fi
+
+	mkdir -p "$target"
+	# Copy contents (trailing /.) so we don't nest a gentoo-template/ subdir.
+	cp -a "$pwd/." "$target/"
+
+	echo "[stage3] repo staged at /opt/gentoo-template in the chroot"
+	echo "[stage3] After reboot run:  cd /opt/gentoo-template && ./run_stage3.sh"
+}
+
+copy_repo_into_chroot
+
